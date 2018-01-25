@@ -1,0 +1,12 @@
+
+
+Added:
+    1. Action Added "remoteRequestFromCIB.do"      [On, struts-config.xml]
+        <action path="/remoteRequestFromCIB" type="ibbl.cib.remote.CIBRemoteAction" name="remoteForm"/>
+    2. Directory Created "src/ibbl/cib"
+    3. businessObject-deposit.xml
+        <objectMap name="ibbl.cib.remote.bl.CIBChargeTransferBLCO" useCaseID="1010237">
+            <action name="cib.br.fad.transaction" writeAuditTrail="true"/>
+        </objectMap>
+    4. eibs-cib-remote-charge.jar
+    5. guava-18.0.jar

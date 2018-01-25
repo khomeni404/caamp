@@ -1,0 +1,150 @@
+package ibbl.cib.remote;
+
+
+import com.ibbl.report.action.bean.CIBRemoteTransBean;
+import com.ibbl.report.action.bean.ResultBean;
+//import com.ibbl.report.dl.model.Inquiry;
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.xml.DomDriver;
+import ibbl.common.util.GeneralUtil;
+import ibbl.deposit.common.util.DepositDictionary;
+import ibbl.deposit.common.web.fb.RemoteForm;
+import ibbl.mt.cbs.bean.BatchResultBean;
+import ibbl.security.bean.LoginBean;
+import org.apache.struts.action.Action;
+import org.apache.struts.action.ActionForm;
+import org.apache.struts.action.ActionForward;
+import org.apache.struts.action.ActionMapping;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
+/**
+ * Copyright (C) 2002-2003 Islami Bank Bangladesh Limited
+ * <p/>
+ * Original author: Ayatullah Khomeni<br/>
+ * Date: 18/01/2016
+ * Last modification by: ayat $
+ * Last modification on 18/01/2016: 5:10 PM
+ * Current revision: : 1.1.1.1
+ * <p/>
+ * Revision History:
+ * ------------------
+ */
+
+public class CIBRemoteAction extends Action {
+    public ActionForward execute(ActionMapping actionMapping, ActionForm actionForm, HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse ) throws Exception {
+        String className = this.getClass().getName();
+        GeneralUtil.printMessage(className, "execute()", DepositDictionary.ENTRY_POINT);
+
+        RemoteForm form = (RemoteForm) actionForm;
+        String message = form.getRemoteMessage();
+
+        XStream xStream = new XStream(new DomDriver("UTF-8"));
+        Class[] depClasses = new Class[]{Inquiry.class};
+        xStream.processAnnotations(depClasses);
+        xStream.alias("bundle", CIBRemoteTransBean.class);
+
+        CIBRemoteTransBean bundle = (CIBRemoteTransBean) xStream.fromXML(message);
+        if (bundle == null) {
+            return null;
+        }
+
+        HttpSession session = httpServletRequest.getSession();
+        String terminalAddress = httpServletRequest.getRemoteAddr();
+
+        LoginBean loginBean = new LoginBean();
+        loginBean.setUserName(bundle.getUserID());
+        loginBean.setPassword(bundle.getPassword());
+        loginBean.setBrCode("101");
+
+        // Testing result
+        ResultBean resultBean = new ResultBean();
+        resultBean.setSuccess(true);
+        resultBean.setMessage("Transaction Successful of Tk." + bundle.getInquiry().getTotalCost());
+
+        xStream = new XStream();
+        String xml = xStream.toXML(resultBean);
+        byte[] messageBytes = xml.getBytes();
+
+        ByteArrayOutputStream stream = new ByteArrayOutputStream(messageBytes.length);
+        stream.write(messageBytes);
+        httpServletResponse.setContentType("text/xml");
+        httpServletResponse.setContentLength(messageBytes.length);
+        stream.writeTo(httpServletResponse.getOutputStream());
+        httpServletResponse.getOutputStream().flush();
+
+        return null;
+
+
+       /*  String actionID = bundle.getActionKey();
+       MessageBuilder request = new MessageBuilder();
+        request.addData(actionID, IActionDataList.DATA_REMOTE_CARRIER, bundle);
+        request.addData(actionID, IActionDataList.DATA_USER_LOGIN_INFO, loginBean);
+        request.addData(actionID, IActionDataList.DATA_REMOTE_CARRIER, bundle);
+        request.addData(actionID, IActionDataList.DATA_SECURITY_REMOTE_USER_LOGIN_INFO, loginBean);
+
+
+        StrutsDispatcher strutsDispatcher = new StrutsDispatcher();
+
+        MessageBuilder response = strutsDispatcher.execute(request);
+
+        ActionMessages errors = new ActionMessages();
+        BatchResultBean resultBean = new BatchResultBean();
+        if (response != null) {
+            // 27-07-2005 MHH: Remote response handling changed to eliminate need of local file.
+            // This in turn facilitates multiple remote request handling.
+            resultBean = (BatchResultBean) response.getData(actionID, IActionDataList.DATA_BATCH_PROCESS_RESULT,
+                    BatchResultBean.class);
+
+            xStream = new XStream();
+            String xml = xStream.toXML(resultBean);
+            byte[] messageBytes = xml.getBytes();
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(messageBytes.length);
+            baos.write(messageBytes);
+            httpServletResponse.setContentType("text/xml");
+            httpServletResponse.setContentLength(messageBytes.length);
+            baos.writeTo(httpServletResponse.getOutputStream());
+            httpServletResponse.getOutputStream().flush();
+
+            return null;
+        } else {
+            errors.add(IWebDataList.ERROR_TITLE, new ActionMessage(GlobalDictionary.NOTIFY_APPLICATION_FAILURE));
+            saveErrors(httpServletRequest, errors);
+
+            //resultBean.setError(true);
+
+            processError(resultBean, httpServletResponse);
+
+            return null;
+        }*/
+    }
+
+    /**
+     * @param resultBean
+     * @param httpServletResponse
+     * @throws java.io.IOException
+     */
+    protected void processError(BatchResultBean resultBean, HttpServletResponse httpServletResponse) throws
+            IOException {
+        //resultBean.setError(true);
+
+        XStream xStream = new XStream();
+        String xml = xStream.toXML(resultBean);
+        byte[] messageBytes = xml.getBytes();
+
+        ByteArrayOutputStream stream = new ByteArrayOutputStream(messageBytes.length);
+        stream.write(messageBytes);
+        httpServletResponse.setContentType("text/xml");
+        httpServletResponse.setContentLength(messageBytes.length);
+        stream.writeTo(httpServletResponse.getOutputStream());
+        httpServletResponse.getOutputStream().flush();
+
+        return;
+    }
+
+}
